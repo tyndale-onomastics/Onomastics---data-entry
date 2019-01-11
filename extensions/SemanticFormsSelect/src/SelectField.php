@@ -127,9 +127,14 @@ class SelectField {
 	}
 
 	public function setValueField( Array $other_args ) {
-		$this->mValueField = $other_args["field"];
-		$this->mData["valuefield"] = $this->mValueField;
+//		$this->mValueField = $other_args["field"];
+//		$this->mData["valuefield"] = $this->mValueField;
 
+        foreach($other_args as $key => $value) {
+            if (strpos($key, 'field') === 0) {
+                $this->mData["valuefield"][] = $value;
+            }
+        }
 	}
 
 	public function setSelectRemove( Array $other_args ) {
