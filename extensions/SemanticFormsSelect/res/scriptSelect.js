@@ -80,7 +80,10 @@
           );
         });
 
-      console.log(requestParams.query);
+      // This removes empty query arguments, matching strings ending with ::]]
+      // such as [[For language::]]
+      requestParams.query = requestParams.query.replace(/\[\[[\w+\s]*::]]/, "");
+
       SFSelect._selectElement[0].options.length = 0;
 
       $.get(mw.config.get("wgScriptPath") + "/api.php", requestParams)
