@@ -11,10 +11,8 @@
    *  on this field will trigger a load event for selectfield.
    * selecttemplate:string
    * selectfield:string
-   * selectismultiple:boolean, Whether this template is a multiple template.
+   * selectismultiple:boolean, @todo Whether this template is a multiple template.
    * selectquery or selectfunciton: the query ot function to execute
-   * selectrm:boolean remove the div if the selected value for a field is not valid any more.
-   * label: boolean, process ending content () as label in option values.
    * sep: Separator for the list of retrieved values, default ','
    */
 
@@ -60,6 +58,11 @@
 
     // Iterate over the SFSelect inputs
     MM.SFSelect.map(SFSelect => {
+      // Drop out if the change target is the selectElement
+      if (event.target === SFSelect._selectElement[0]) {
+        return;
+      }
+
       // Initiate request parameters
       let requestParams = {
         action: "sformsselect",
