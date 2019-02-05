@@ -53,14 +53,14 @@
       event.target.tagName.toLowerCase() !== "input" &&
       event.target.tagName.toLowerCase() !== "select"
     ) {
-      return;
+      return false;
     }
 
     // Iterate over the SFSelect inputs
     MM.SFSelect.map(SFSelect => {
       // Drop out if the change target is the selectElement
       if (event.target === SFSelect._selectElement[0]) {
-        return;
+        return false;
       }
 
       // Initiate request parameters
