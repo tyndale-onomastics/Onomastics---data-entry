@@ -37,6 +37,7 @@
 	"ResourceModules": {
 		"ext.sf_select.scriptselect": {
 			"scripts": [
+				"res/lodash.js",
 				"res/scriptSelect.js"
 			],
 			"styles": [

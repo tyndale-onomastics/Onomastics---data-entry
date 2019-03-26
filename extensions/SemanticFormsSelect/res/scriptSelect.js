@@ -1,6 +1,9 @@
 /* jshint esversion: 6 */
 /* jshint quotmark: double */
-/* globals mw, console */
+/* globals mw, console, _, alert */
+
+// Global var for easier debug! :/
+var SFSelectFields = [];
 
 (function($) {
   "use strict";
@@ -16,96 +19,85 @@
    * sep: Separator for the list of retrieved values, default ','
    */
 
-  // Get the MW config
-  var MM = {
-    SFSelect: $.parseJSON(mw.config.get("sf_select"))
-  };
+  class SFSelectField {
+    constructor(config) {
+      this.config = config;
+      this.selectField = $(`select[name*="${config.selectfield}"]`)[0];
 
-  MM.SFSelect.map(SFSelect => {
-    //  Set the select element
-    SFSelect._selectElement = $(
-      "select[name='" +
-        SFSelect.valuetemplate +
-        "[" +
-        SFSelect.selectfield +
-        "]']"
-    ).first();
+      var argumentFieldSelector = config.valuefield.map(field => {
+        let pattern = `[name^="${config.valuetemplate}"][name*="${field}"]`;
+        return `input${pattern}, select${pattern}`;
+      });
 
-    // Get the watch elements for values
-    SFSelect._watchElements = SFSelect.valuefield.map(field => {
-      let pattern =
-        '[name^="' + SFSelect.valuetemplate + '"]' + '[name*="' + field + '"]';
-      let elements = $("input" + pattern + ", select" + pattern);
+      this.argumentFields = $(argumentFieldSelector.join(", "));
 
-      // Add a function to get the current values
-      SFSelect.values = () => {
-        return elements.val();
-      };
-
-      return elements;
-    });
-  });
-
-  // Watch for changes bubbling up to the form
-  $("form#pfForm").change(function(event) {
-    // Only act on inputs and select changes
-    if (
-      event.target.tagName.toLowerCase() !== "input" &&
-      event.target.tagName.toLowerCase() !== "select"
-    ) {
-      return false;
+      this.initChangeEvents();
     }
 
-    // Iterate over the SFSelect inputs
-    MM.SFSelect.map(SFSelect => {
-      // Drop out if the change target is the selectElement
-      if (event.target === SFSelect._selectElement[0]) {
-        return false;
-      }
+    initChangeEvents() {
+      _.map(this.argumentFields, argumentField => {
+        $(argumentField).change(() => this.requestValues());
+      });
+    }
 
-      // Initiate request parameters
-      let requestParams = {
-        action: "sformsselect",
-        format: "json",
-        sep: SFSelect.sep,
-        query: SFSelect.selectquery || SFSelect.selectfunction,
-        approach: SFSelect.selectquery ? "smw" : "function"
-      };
+    get query() {
+      var query = this.config.selectquery || this.config.selectfunction;
 
-      SFSelect._watchElements
-        .map(e => e.val())
-        .map(value => {
-          requestParams.query = requestParams.query.replace(
-            "@@@@",
-            value
-            // TODO: Join values of a multiple section field?
-            // value.join(SFSelect.selectquery ? "||" : ", ")
-          );
-        });
+      query = query.replace("@@@@", this.argumentFields.val());
+      // _.map(this.argumentFields, element => {});
 
       // This removes empty query arguments, matching strings ending with ::]]
       // such as [[For language::]]
-      requestParams.query = requestParams.query.replace(/\[\[[\w+\s]*::]]/, "");
+      query = query.replace(/\[\[[\w+\s]*::]]/, "");
 
-      SFSelect._selectElement[0].options.length = 0;
+      return query;
+    }
 
-      $.get(mw.config.get("wgScriptPath") + "/api.php", requestParams)
-        .done(function(data) {
+    // Set up request parameters
+    get requestParams() {
+      return {
+        action: "sformsselect",
+        format: "json",
+        sep: this.config.sep,
+        query: this.query,
+        approach: this.config.selectquery ? "smw" : "function"
+      };
+    }
+
+    /**
+     * Make API request for values
+     */
+    requestValues() {
+      $.get(mw.config.get("wgScriptPath") + "/api.php", this.requestParams)
+        .done(data => {
           if (data.error) {
             alert("Oops, the query didn't work");
             console.error("Error!");
             console.debug(data);
           }
 
-          data.sformsselect.values.map((value, key) => {
-            SFSelect._selectElement[0].options[key] = new Option(value);
-          });
+          this.setValues(data.sformsselect.values);
         })
-        .fail(function(data) {
+        .fail(data => {
           alert("Oops, the query didn't work");
           console.error("Error!");
           console.debug(data);
         });
-    });
+    }
+
+    setValues(values) {
+      this.selectField.options.length = 0;
+      values.map((value, key) => {
+        this.selectField.options[key] = new Option(value);
+      });
+    }
+  }
+
+  // Get the config and map to the SFSelectField class
+  _.uniqBy(
+    $.parseJSON(mw.config.get("sf_select")),
+    SFSelect => SFSelect.selectfield
+  ).map(SFSelect => {
+    SFSelectFields.push(new SFSelectField(SFSelect));
   });
 })(jQuery);
