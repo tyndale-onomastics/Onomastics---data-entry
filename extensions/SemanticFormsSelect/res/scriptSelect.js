@@ -43,8 +43,9 @@ var SFSelectFields = [];
     get query() {
       var query = this.config.selectquery || this.config.selectfunction;
 
-      query = query.replace("@@@@", this.argumentFields.val());
-      // _.map(this.argumentFields, element => {});
+      _.map(this.argumentFields, field => {
+        query = query.replace("@@@@", field.value);
+      });
 
       // This removes empty query arguments, matching strings ending with ::]]
       // such as [[For language::]]
